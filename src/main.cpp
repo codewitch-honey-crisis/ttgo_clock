@@ -101,8 +101,9 @@ void loop()
       } else {
         if(!ntp_ts || millis() > ntp_ts + 30*1000) {
           ntp_ts = millis();
-          Serial.println("Sending NTP requiest");
+          Serial.println("Sending NTP request");
           ntp.begin_request(ntp_ip,[] (time_t result, void* state) {
+            Serial.println("NTP response received");
             current_time = utc_offset + result;
             got_time = true;
           });
