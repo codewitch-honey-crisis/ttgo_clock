@@ -28,31 +28,6 @@ constexpr static const size_t lcd_buffer_size = fb_type::sizeof_buffer({lcd_t::b
 static uint8_t lcd_buffer[lcd_buffer_size];
 fb_type fb({240,135},lcd_buffer);
 static int connect_state = 0;
-
-static void get_build_tm(tm* out_tm) {
-    char s_month[5];
-    int month, day, year;
-    static const char month_names[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
-
-    sscanf(__DATE__, "%s %d %d", s_month, &day, &year);
-    month = (strstr(month_names, s_month) - month_names) / 3;
-
-    out_tm->tm_mon = month;
-    out_tm->tm_mday = day;
-    out_tm->tm_year = year - 1900;
-    out_tm->tm_isdst = -1;
-    int d = day;        // Day     1-31
-    int m = month + 1;  // Month   1-12`
-    int y = year;
-    // from https://stackoverflow.com/questions/6054016/c-program-to-find-day-of-week-given-date
-    int weekday = (d += m < 3 ? y-- : y - 2, 23 * m / 9 + d + 4 + y / 4 - y / 100 + y / 400) % 7;
-    out_tm->tm_wday = weekday;
-    int hr, min, sec;
-    sscanf(__TIME__, "%2d:%2d:%2d", &hr, &min, &sec);
-    out_tm->tm_hour = hr;
-    out_tm->tm_min = min;
-    out_tm->tm_sec = sec;
-}
 char timbuf[16];
 tm tim;
 ntp_time ntp;
@@ -61,44 +36,7 @@ float longitude;
 long utc_offset;
 char region[128];
 char city[128];
-#if 0
-void screen_init() {
-    const rgba_pixel<32> transparent(0, 0, 0, 0);
-    float scl = text_font.scale(main_screen.dimensions().height - 2);
-    ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
-    int16_t w = (dig_size.width + 1) * 6;
-    float mult = (float)(main_screen.dimensions().width - 2) / (float)w;
-    if (mult > 1.0f) mult = 1.0f;
-    int16_t lh = (main_screen.dimensions().height - 2) * mult;
-    clock_bg.bounds(main_screen.bounds());
-    clock_bg.text_open_font(&text_font);
-    clock_bg.text_line_height(lh);
-    clock_bg.border_color(transparent);
-    clock_bg.background_color(transparent);
 
-    clock_bg.text_color(color32_t::black.blend(color32_t::white, 0.52f));
-    clock_bg.padding({0, 0});
-    clock_bg.text_justify(uix_justify::center);
-    clock_bg.text("\x7E\x7E:\x7E\x7E");
-    main_screen.register_control(clock_bg);
-
-    clock_face.bounds(main_screen.bounds());
-    clock_face.text_open_font(&text_font);
-    clock_face.text_line_height(lh);
-    clock_face.border_color(transparent);
-    clock_face.background_color(transparent);
-    clock_face.text_color(color32_t::black);
-    clock_face.padding({0, 0});
-    clock_face.text_justify(uix_justify::center);
-  
-    strftime(timbuf, sizeof(timbuf), "%H:%M", &tim);
-    clock_face.text(timbuf);
-    main_screen.register_control(clock_face);
-
-    main_screen.background_color(color_t::dark_gray);
-    main_screen.on_flush_callback(uix_on_flush);
-}
-#endif
 static bool got_time = false;
 static time_t current_time;
 static IPAddress ntp_ip;
@@ -220,3 +158,30 @@ void loop()
   dimmer.wake();
   dimmer.update();
 }
+
+#if 0
+static void get_build_tm(tm* out_tm) {
+    char s_month[5];
+    int month, day, year;
+    static const char month_names[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
+
+    sscanf(__DATE__, "%s %d %d", s_month, &day, &year);
+    month = (strstr(month_names, s_month) - month_names) / 3;
+
+    out_tm->tm_mon = month;
+    out_tm->tm_mday = day;
+    out_tm->tm_year = year - 1900;
+    out_tm->tm_isdst = -1;
+    int d = day;        // Day     1-31
+    int m = month + 1;  // Month   1-12`
+    int y = year;
+    // from https://stackoverflow.com/questions/6054016/c-program-to-find-day-of-week-given-date
+    int weekday = (d += m < 3 ? y-- : y - 2, 23 * m / 9 + d + 4 + y / 4 - y / 100 + y / 400) % 7;
+    out_tm->tm_wday = weekday;
+    int hr, min, sec;
+    sscanf(__TIME__, "%2d:%2d:%2d", &hr, &min, &sec);
+    out_tm->tm_hour = hr;
+    out_tm->tm_min = min;
+    out_tm->tm_sec = sec;
+}
+#endif
