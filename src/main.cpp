@@ -36,10 +36,11 @@ float longitude;
 long utc_offset;
 char region[128];
 char city[128];
-
+open_text_info oti;
 static bool got_time = false;
 static time_t current_time;
 static IPAddress ntp_ip;
+rect16 text_bounds;
 void setup()
 {
     COMMAND.begin(115200);
@@ -51,6 +52,16 @@ void setup()
     tim.tm_sec = 0;
     lcd.initialize();
     lcd.rotation(3);
+    float scl = text_font.scale(lcd.dimensions().height - 2);
+    ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
+    int16_t w = (dig_size.width + 1) * 6;
+    float mult = (float)(lcd.dimensions().width - 2) / (float)w;
+    if (mult > 1.0f) mult = 1.0f;
+    int16_t lh = (lcd.dimensions().height - 2) * mult;
+    oti=open_text_info("\x7E\x7E:\x7E\x7E",text_font,text_font.scale(lh));
+    text_bounds = (rect16)text_font.measure_text(ssize16::max(),oti.offset,oti.text,oti.scale,oti.scaled_tab_width,oti.encoding,oti.cache).bounds();
+    text_bounds=text_bounds.center(fb.bounds());
+      
 }
 
 void loop()
@@ -138,20 +149,12 @@ void loop()
         tim.tm_sec = 0;
       }
       fb.fill(fb.bounds(),color_t::dark_gray);
-      float scl = text_font.scale(lcd.dimensions().height - 2);
-      ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
-      int16_t w = (dig_size.width + 1) * 6;
-      float mult = (float)(lcd.dimensions().width - 2) / (float)w;
-      if (mult > 1.0f) mult = 1.0f;
-      int16_t lh = (lcd.dimensions().height - 2) * mult;
-      open_text_info oti("\x7E\x7E:\x7E\x7E",text_font,text_font.scale(lh));
       typename lcd_t::pixel_type px = color_t::black.blend(color_t::white,0.42f);
-      rect16 b = (rect16)text_font.measure_text(ssize16::max(),oti.offset,oti.text,oti.scale,oti.scaled_tab_width,oti.encoding,oti.cache).bounds();
-      b=b.center(fb.bounds());
-      draw::text(fb,b,oti,px);
+      oti.text = "\x7E\x7E:\x7E\x7E";
+      draw::text(fb,text_bounds,oti,px);
       oti.text = timbuf;
       px = color_t::black;
-      draw::text(fb,b,oti,px);
+      draw::text(fb,text_bounds,oti,px);
       draw::wait_all_async(lcd);
       draw::bitmap_async(lcd,lcd.bounds(),fb,fb.bounds());
   }
