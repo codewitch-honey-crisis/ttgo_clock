@@ -7,6 +7,9 @@
 #include <ntp_time.hpp>
 #include <ip_loc.hpp>
 
+constexpr static const char* ssid = NULL;
+constexpr static const char* pass = NULL;
+
 #define DSEG14CLASSIC_REGULAR_IMPLEMENTATION
 #include <assets/DSEG14Classic_Regular.hpp>
 static const gfx::open_font& text_font = DSEG14Classic_Regular;
@@ -16,8 +19,7 @@ constexpr static const char* ntp_server = "pool.ntp.org";
 // synchronize with NTP every 60 seconds
 constexpr static const int clock_sync_seconds = 60;
 
-constexpr static const char* ssid = "Communism_Will_Win";
-constexpr static const char* pass = "mypalkarl";
+
 using namespace arduino;
 using namespace gfx;
 using color_t = color<lcd_t::pixel_type>;
@@ -119,7 +121,11 @@ void loop()
   switch(connect_state) {
     case 0:
         Serial.println("WiFi Connecting");
-        WiFi.begin(ssid, pass);
+        if(ssid==NULL) {
+          WiFi.begin();
+        } else {
+          WiFi.begin(ssid, pass);
+        }
         connect_state = 1;
         break;
     case 1:
