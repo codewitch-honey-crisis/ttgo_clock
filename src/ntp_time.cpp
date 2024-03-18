@@ -1,3 +1,4 @@
+#ifdef ESP32
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -60,4 +61,4 @@ void ntp_time::update() {
     }
 }
 }
-
+#endif

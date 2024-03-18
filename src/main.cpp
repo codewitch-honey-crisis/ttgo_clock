@@ -71,9 +71,16 @@ void setup()
     if (mult > 1.0f) mult = 1.0f;
     int16_t lh = (lcd.dimensions().height - 2) * mult;
     oti=open_text_info("\x7E\x7E:\x7E\x7E",text_font,text_font.scale(lh));
-    text_bounds = (rect16)text_font.measure_text(ssize16::max(),oti.offset,oti.text,oti.scale,oti.scaled_tab_width,oti.encoding,oti.cache).bounds();
-    // add a little padding
-    text_bounds.x2+=5;
+    text_bounds = (rect16)text_font.measure_text(
+      ssize16::max(),
+      oti.offset,
+      oti.text,
+      oti.scale,
+      oti.scaled_tab_width,
+      oti.encoding,
+      oti.cache).bounds();
+    // set to the screen's width
+    text_bounds.x2=text_bounds.x1+lcd.dimensions().width-1;
     text_bounds=text_bounds.center(lcd.bounds());
     size_t sz = fb_type::sizeof_buffer(text_bounds.dimensions());
 #ifdef BOARD_HAS_PSRAM
@@ -98,7 +105,7 @@ void loop()
 {
   static uint32_t ntp_ts = 0;
   switch(connect_state) {
-    case 0:
+    case 0: // DISCONNECTED
         Serial.println("WiFi Connecting");
         if(ssid==NULL) {
           WiFi.begin();
@@ -107,7 +114,7 @@ void loop()
         }
         connect_state = 1;
         break;
-    case 1:
+    case 1: // CONNECTION ESTABLISHED
       if(WiFi.status()==WL_CONNECTED) {
         Serial.println("WiFi Connected");
         ntp_ip = false;
@@ -120,12 +127,7 @@ void loop()
         Serial.println(city);
       }
       break;
-    case 2:
-      if (WiFi.status() == WL_CONNECTED) {
-        connect_state = 3;
-      }
-      break;
-    case 3:
+    case 2: // CONNECTED
       if (WiFi.status() != WL_CONNECTED) {
         connect_state = 0;
       } else {
@@ -138,15 +140,11 @@ void loop()
             got_time = true;
           });
         }
-        
         ntp.update();
-        
         if(got_time) {
           tim = *localtime(&current_time);
-          connect_state = 3;
         }
       }
-
       break;
   }
   static uint32_t ts_sec = 0;
@@ -160,7 +158,7 @@ void loop()
           strftime(timbuf, sizeof(timbuf), "%H %M", &tim);
       }
       dot = !dot;
-      if(connect_state==3) {
+      if(connect_state==2) { // is connected?
         ++tim.tm_sec;
         if (tim.tm_sec == 60) {
             tim.tm_sec = 0;

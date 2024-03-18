@@ -1,3 +1,4 @@
+#ifdef ESP32
 #include <ip_loc.hpp>
 #include <HTTPClient.h>
 namespace arduino {
@@ -45,3 +46,4 @@ bool ip_loc::fetch(float* out_lat,
     return true;
 }
 }
+#endif

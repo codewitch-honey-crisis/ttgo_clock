@@ -13,7 +13,9 @@ class ntp_time final {
     void* m_callback_state;
    public:
     inline ntp_time() : m_requesting(false),m_request_result(0) {}
-    void begin_request(IPAddress address, ntp_time_callback callback = nullptr, void* callback_state = nullptr);
+    void begin_request(IPAddress address, 
+                    ntp_time_callback callback = nullptr, 
+                    void* callback_state = nullptr);
     inline bool request_received() const { return m_request_result!=0;}
     inline time_t request_result() const { return m_request_result; }
     inline bool requesting() const { return m_requesting; }
