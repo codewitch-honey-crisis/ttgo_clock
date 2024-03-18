@@ -92,10 +92,7 @@ void setup()
     // get_build_tm(&tim);
     tim.tm_hour = 12;
     tim.tm_min = 0;
-    tim.tm_sec = 0;
-    
-    
-    
+    tim.tm_sec = 0;    
 }
 
 void loop()
@@ -155,6 +152,7 @@ void loop()
   }
   static uint32_t ts_sec = 0;
   static bool dot = false;
+  // once every second...
   if (!ts_sec || millis() > ts_sec + 1000) {
       ts_sec = millis();
       if (dot) {
