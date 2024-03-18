@@ -73,6 +73,7 @@ void setup()
     int16_t lh = (lcd.dimensions().height - 2) * mult;
     oti=open_text_info("\x7E\x7E:\x7E\x7E",text_font,text_font.scale(lh));
     text_bounds = (rect16)text_font.measure_text(ssize16::max(),oti.offset,oti.text,oti.scale,oti.scaled_tab_width,oti.encoding,oti.cache).bounds();
+    // add a little padding
     text_bounds.x2+=5;
     text_bounds=text_bounds.center(lcd.bounds());
     size_t sz = fb_type::sizeof_buffer(text_bounds.dimensions());
