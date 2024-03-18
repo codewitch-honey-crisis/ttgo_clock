@@ -129,7 +129,7 @@ void loop()
       if (WiFi.status() != WL_CONNECTED) {
         connect_state = 0;
       } else {
-        if(!ntp_ts || millis() > ntp_ts + 30*1000) {
+        if(!ntp_ts || millis() > ntp_ts + clock_sync_seconds*1000) {
           ntp_ts = millis();
           Serial.println("Sending NTP request");
           ntp.begin_request(ntp_ip,[] (time_t result, void* state) {
