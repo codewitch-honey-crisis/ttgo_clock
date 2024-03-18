@@ -1,16 +1,16 @@
 #include <Arduino.h>
-#include <gfx.hpp>
-#ifdef TTGO_T1
-#include <ttgo.hpp>
-#else
-#include <tft_io.hpp>
-#include <ili9341.hpp>
-#endif
 #include <WiFi.h>
+#include <gfx.hpp>
 #include <ntp_time.hpp>
 #include <ip_loc.hpp>
 
+#ifdef TTGO_T1
+#include <ttgo.hpp>
+#endif
 #ifdef M5STACK_CORE2
+#include <tft_io.hpp>
+#include <ili9341.hpp>
+#include <m5core2_power.hpp>
 #define LCD_SPI_HOST VSPI
 #define LCD_PIN_NUM_MOSI 23
 #define LCD_PIN_NUM_CLK 18
@@ -19,7 +19,6 @@
 using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MOSI,-1,LCD_PIN_NUM_CLK,0,false>;
 using lcd_t = arduino::ili9342c<LCD_PIN_NUM_DC,-1,-1,tft_bus_t,1>;
 lcd_t lcd;
-#include <m5core2_power.hpp>
 static m5core2_power power;
 #endif
 
