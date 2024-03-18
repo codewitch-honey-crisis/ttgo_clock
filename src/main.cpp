@@ -1,14 +1,31 @@
 #include <Arduino.h>
 #include <gfx.hpp>
+#ifdef TTGO_T1
 #include <ttgo.hpp>
-#include <config.h>
-#include <button.hpp>
+#else
+#include <tft_io.hpp>
+#include <ili9341.hpp>
+#endif
 #include <WiFi.h>
 #include <ntp_time.hpp>
 #include <ip_loc.hpp>
 
-constexpr static const char* ssid = NULL;
-constexpr static const char* pass = NULL;
+#ifdef M5STACK_CORE2
+#define LCD_SPI_HOST VSPI
+#define LCD_PIN_NUM_MOSI 23
+#define LCD_PIN_NUM_CLK 18
+#define LCD_PIN_NUM_CS 5
+#define LCD_PIN_NUM_DC 15
+using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MOSI,-1,LCD_PIN_NUM_CLK,0,false>;
+using lcd_t = arduino::ili9342c<LCD_PIN_NUM_DC,-1,-1,tft_bus_t,1>;
+lcd_t lcd;
+#include <m5core2_power.hpp>
+static m5core2_power power;
+#endif
+
+// set these to assign an SSID and pass for WiFi
+constexpr static const char* ssid = nullptr;
+constexpr static const char* pass = nullptr;
 
 #define DSEG14CLASSIC_REGULAR_IMPLEMENTATION
 #include <assets/DSEG14Classic_Regular.hpp>
@@ -19,14 +36,11 @@ constexpr static const char* ntp_server = "pool.ntp.org";
 // synchronize with NTP every 60 seconds
 constexpr static const int clock_sync_seconds = 60;
 
-
 using namespace arduino;
 using namespace gfx;
 using color_t = color<lcd_t::pixel_type>;
 using fb_type = bitmap<lcd_t::pixel_type>;
-constexpr static const size_t lcd_buffer_size = fb_type::sizeof_buffer({lcd_t::base_width,lcd_t::base_height});
-static uint8_t lcd_buffer[lcd_buffer_size];
-fb_type fb({240,135},lcd_buffer);
+static uint8_t* lcd_buffer;
 static int connect_state = 0;
 char timbuf[16];
 tm tim;
@@ -43,15 +57,14 @@ static IPAddress ntp_ip;
 rect16 text_bounds;
 void setup()
 {
-    COMMAND.begin(115200);
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    // get_build_tm(&tim);
-    tim.tm_hour = 12;
-    tim.tm_min = 0;
-    tim.tm_sec = 0;
+    Serial.begin(115200);
+#ifdef M5STACK_CORE2
+    power.initialize();
+#endif
     lcd.initialize();
+#ifdef TTGO_T1
     lcd.rotation(3);
+#endif
     float scl = text_font.scale(lcd.dimensions().height - 2);
     ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
     int16_t w = (dig_size.width + 1) * 6;
@@ -60,8 +73,28 @@ void setup()
     int16_t lh = (lcd.dimensions().height - 2) * mult;
     oti=open_text_info("\x7E\x7E:\x7E\x7E",text_font,text_font.scale(lh));
     text_bounds = (rect16)text_font.measure_text(ssize16::max(),oti.offset,oti.text,oti.scale,oti.scaled_tab_width,oti.encoding,oti.cache).bounds();
-    text_bounds=text_bounds.center(fb.bounds());
-      
+    text_bounds.x2+=5;
+    text_bounds=text_bounds.center(lcd.bounds());
+    size_t sz = fb_type::sizeof_buffer(text_bounds.dimensions());
+#ifdef BOARD_HAS_PSRAM
+    lcd_buffer = (uint8_t*)ps_malloc(sz);
+#else
+    lcd_buffer = (uint8_t*)malloc(sz);
+#endif
+    if(lcd_buffer==nullptr) {
+      Serial.println("Out of memory allocation LCD buffer");
+      while(1);
+    }
+    lcd.fill(lcd.bounds(),color_t::dark_gray);
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    // get_build_tm(&tim);
+    tim.tm_hour = 12;
+    tim.tm_min = 0;
+    tim.tm_sec = 0;
+    
+    
+    
 }
 
 void loop()
@@ -149,18 +182,25 @@ void loop()
         tim.tm_min = 0;
         tim.tm_sec = 0;
       }
+      fb_type fb(text_bounds.dimensions(),lcd_buffer);
       fb.fill(fb.bounds(),color_t::dark_gray);
       typename lcd_t::pixel_type px = color_t::black.blend(color_t::white,0.42f);
       oti.text = "\x7E\x7E:\x7E\x7E";
-      draw::text(fb,text_bounds,oti,px);
+      draw::text(fb,fb.bounds(),oti,px);
       oti.text = timbuf;
       px = color_t::black;
-      draw::text(fb,text_bounds,oti,px);
+      draw::text(fb,fb.bounds(),oti,px);
+#ifdef BOARD_HAS_PSRAM
+      draw::bitmap(lcd,text_bounds,fb,fb.bounds());
+#else
       draw::wait_all_async(lcd);
-      draw::bitmap_async(lcd,lcd.bounds(),fb,fb.bounds());
+      draw::bitmap_async(lcd,text_bounds,fb,fb.bounds());
+#endif
   }
+#ifdef TTGO_T1
   dimmer.wake();
   dimmer.update();
+#endif
 }
 
 #if 0
