@@ -10,6 +10,7 @@
 #ifdef M5STACK_CORE2
 #include <tft_io.hpp>
 #include <ili9341.hpp>
+#include <ft6336.hpp>
 #include <m5core2_power.hpp>
 #define LCD_SPI_HOST VSPI
 #define LCD_PIN_NUM_MOSI 23
@@ -20,6 +21,8 @@ using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MO
 using lcd_t = arduino::ili9342c<LCD_PIN_NUM_DC,-1,-1,tft_bus_t,1>;
 lcd_t lcd;
 static m5core2_power power;
+using touch_t = arduino::ft6336<280,320>;
+touch_t touch(Wire1);
 #endif
 
 // set these to assign an SSID and pass for WiFi
@@ -96,6 +99,8 @@ void setup()
     Serial.begin(115200);
 #ifdef M5STACK_CORE2
     power.initialize();
+    touch.initialize();
+    touch.rotation(1);
 #endif
 #ifdef TTGO_T1
   ttgo_initialize();
@@ -230,6 +235,16 @@ void loop()
 #ifdef TTGO_T1
   dimmer.wake();
   ttgo_update();
+#endif
+#ifdef M5STACK_CORE2
+  touch.update();
+
+  uint16_t x,y;
+  if(touch.xy(&x,&y)) {
+    am_pm = !am_pm;
+    calculate_positioning();
+  }
+
 #endif
 }
 
