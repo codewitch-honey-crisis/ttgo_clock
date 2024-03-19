@@ -141,9 +141,6 @@ void loop()
           });
         }
         ntp.update();
-        if(got_time) {
-          tim = *localtime(&current_time);
-        }
       }
       break;
   }
@@ -152,32 +149,19 @@ void loop()
   // once every second...
   if (!ts_sec || millis() > ts_sec + 1000) {
       ts_sec = millis();
+      if(connect_state==2) { // is connected?
+        ++current_time;
+      } else {
+        current_time = 12*60*60;
+      }
+      tim = *localtime(&current_time);
       if (dot) {
           strftime(timbuf, sizeof(timbuf), "%H:%M", &tim);
       } else {
           strftime(timbuf, sizeof(timbuf), "%H %M", &tim);
       }
       dot = !dot;
-      if(connect_state==2) { // is connected?
-        ++tim.tm_sec;
-        if (tim.tm_sec == 60) {
-            tim.tm_sec = 0;
-            if (tim.tm_min == 59) {
-                tim.tm_min = 0;
-                if (tim.tm_hour == 23) {
-                    tim.tm_hour = 0;
-                } else {
-                    ++tim.tm_hour;
-                }
-            } else {
-                ++tim.tm_min;
-            }
-        }
-      } else {
-        tim.tm_hour = 12;
-        tim.tm_min = 0;
-        tim.tm_sec = 0;
-      }
+      
       fb_type fb(text_bounds.dimensions(),lcd_buffer);
       fb.fill(fb.bounds(),color_t::dark_gray);
       typename lcd_t::pixel_type px = color_t::black.blend(color_t::white,0.42f);
