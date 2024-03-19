@@ -116,6 +116,7 @@ void loop()
         break;
     case 1: // CONNECTION ESTABLISHED
       if(WiFi.status()==WL_CONNECTED) {
+        got_time = false;
         Serial.println("WiFi Connected");
         ntp_ip = false;
         connect_state = 2;
@@ -131,7 +132,7 @@ void loop()
       if (WiFi.status() != WL_CONNECTED) {
         connect_state = 0;
       } else {
-        if(!ntp_ts || millis() > ntp_ts + clock_sync_seconds*1000) {
+        if(!ntp_ts || millis() > ntp_ts + (clock_sync_seconds*got_time*1000)+((!got_time)*250)) {
           ntp_ts = millis();
           Serial.println("Sending NTP request");
           ntp.begin_request(ntp_ip,[] (time_t result, void* state) {
