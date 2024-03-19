@@ -41,36 +41,37 @@ using color_t = color<lcd_t::pixel_type>;
 using fb_type = bitmap<lcd_t::pixel_type>;
 static uint8_t* lcd_buffer;
 static int connect_state = 0;
-char timbuf[16];
-tm tim;
-ntp_time ntp;
-float latitude;
-float longitude;
-long utc_offset;
-char region[128];
-char city[128];
-open_text_info oti;
+static char timbuf[16];
+static tm tim;
+static ntp_time ntp;
+static float latitude;
+static float longitude;
+static long utc_offset;
+static char region[128];
+static bool am_pm = false;
+static char city[128];
+static open_text_info oti;
 static bool got_time = false;
+static bool refresh = false;
 static time_t current_time;
 static IPAddress ntp_ip;
 rect16 text_bounds;
-void setup()
-{
-    Serial.begin(115200);
-#ifdef M5STACK_CORE2
-    power.initialize();
-#endif
-    lcd.initialize();
-#ifdef TTGO_T1
-    lcd.rotation(3);
-#endif
+void calculate_positioning() {
+    refresh = true;
+    lcd.fill(lcd.bounds(),color_t::dark_gray);
     float scl = text_font.scale(lcd.dimensions().height - 2);
     ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
+    ssize16 am_pm_size = {0,0};
     int16_t w = (dig_size.width + 1) * 6;
+    if(am_pm) {
+      am_pm_size = text_font.measure_text(ssize16::max(), spoint16::zero(), ".", scl);
+      w+=am_pm_size.width;
+    }
     float mult = (float)(lcd.dimensions().width - 2) / (float)w;
     if (mult > 1.0f) mult = 1.0f;
     int16_t lh = (lcd.dimensions().height - 2) * mult;
-    oti=open_text_info("\x7E\x7E:\x7E\x7E",text_font,text_font.scale(lh));
+    const char* str = am_pm?"\x7E\x7E:\x7E\x7E.":"\x7E\x7E:\x7E\x7E";
+    oti=open_text_info(str,text_font,text_font.scale(lh));
     text_bounds = (rect16)text_font.measure_text(
       ssize16::max(),
       oti.offset,
@@ -82,6 +83,30 @@ void setup()
     // set to the screen's width
     text_bounds.x2=text_bounds.x1+lcd.dimensions().width-1;
     text_bounds=text_bounds.center(lcd.bounds());
+}
+void on_pressed_changed(bool pressed, void* state) {
+  if(pressed) {
+    am_pm = !am_pm;
+    calculate_positioning();
+  }
+}
+
+void setup()
+{
+    Serial.begin(115200);
+#ifdef M5STACK_CORE2
+    power.initialize();
+#endif
+#ifdef TTGO_T1
+  ttgo_initialize();
+  button_a_raw.on_pressed_changed(on_pressed_changed);
+  button_b_raw.on_pressed_changed(on_pressed_changed);  
+#endif
+    lcd.initialize();
+#ifdef TTGO_T1
+    lcd.rotation(3);
+#endif
+    calculate_positioning();
     size_t sz = fb_type::sizeof_buffer(text_bounds.dimensions());
 #ifdef BOARD_HAS_PSRAM
     lcd_buffer = (uint8_t*)ps_malloc(sz);
@@ -149,6 +174,7 @@ void loop()
   static bool dot = false;
   // once every second...
   if (!ts_sec || millis() > ts_sec + 1000) {
+      refresh = true;
       ts_sec = millis();
       if(connect_state==2) { // is connected?
         ++current_time;
@@ -157,16 +183,39 @@ void loop()
       }
       tim = *localtime(&current_time);
       if (dot) {
-          strftime(timbuf, sizeof(timbuf), "%H:%M", &tim);
+          if(am_pm) {
+            if(tim.tm_hour>=12) {
+              strftime(timbuf, sizeof(timbuf), "%I:%M.", &tim);
+            } else {
+              strftime(timbuf, sizeof(timbuf), "%I:%M", &tim);
+            }
+            
+          } else {
+            strftime(timbuf, sizeof(timbuf), "%H:%M", &tim);
+          }
       } else {
-          strftime(timbuf, sizeof(timbuf), "%H %M", &tim);
+          if(am_pm) {
+            if(tim.tm_hour>=12) {
+              strftime(timbuf, sizeof(timbuf), "%I %M.", &tim);
+            } else {
+              strftime(timbuf, sizeof(timbuf), "%I %M", &tim);
+            }
+            
+          } else {
+            strftime(timbuf, sizeof(timbuf), "%H %M", &tim);
+          }
       }
       dot = !dot;
-      
+    }
+    if(refresh) {
       fb_type fb(text_bounds.dimensions(),lcd_buffer);
       fb.fill(fb.bounds(),color_t::dark_gray);
       typename lcd_t::pixel_type px = color_t::black.blend(color_t::white,0.42f);
-      oti.text = "\x7E\x7E:\x7E\x7E";
+      if(am_pm) {
+        oti.text = "\x7E\x7E:\x7E\x7E.";
+      } else {
+        oti.text = "\x7E\x7E:\x7E\x7E";
+      }
       draw::text(fb,fb.bounds(),oti,px);
       oti.text = timbuf;
       px = color_t::black;
@@ -180,7 +229,7 @@ void loop()
   }
 #ifdef TTGO_T1
   dimmer.wake();
-  dimmer.update();
+  ttgo_update();
 #endif
 }
 
