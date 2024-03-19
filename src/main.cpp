@@ -89,7 +89,7 @@ void setup()
     lcd_buffer = (uint8_t*)malloc(sz);
 #endif
     if(lcd_buffer==nullptr) {
-      Serial.println("Out of memory allocation LCD buffer");
+      Serial.println("Out of memory allocating LCD buffer");
       while(1);
     }
     lcd.fill(lcd.bounds(),color_t::dark_gray);
