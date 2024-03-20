@@ -69,13 +69,13 @@ static const open_font& text_font = DSEG14Classic_Regular;
 #include <assets/DSEG7Classic_Regular.hpp>
 static const open_font& text_font = DSEG7Classic_Regular;
 #endif
-constexpr static const auto backcolor = color_t::dark_gray;
-constexpr static const auto ghostcolor = color_t::black.blend(color_t::white,0.42f);
-constexpr static const auto textcolor = color_t::black;
+constexpr static const auto back_color = color_t::dark_gray;
+constexpr static const auto ghost_color = color_t::black.blend(color_t::white,0.42f);
+constexpr static const auto text_color = color_t::black;
 
-// static const auto backcolor = color_t::black;
-// static const auto ghostcolor = color_t::black;
-// static const auto textcolor = color_t::red;
+// static const auto back_color = color_t::black;
+// static const auto ghost_color = color_t::black;
+// static const auto text_color = color_t::red;
 
 using fb_type = bitmap<lcd_t::pixel_type>;
 static uint8_t* lcd_buffer;
@@ -99,7 +99,7 @@ rect16 text_bounds;
 
 void calculate_positioning() {
     refresh = true;
-    lcd.fill(lcd.bounds(),backcolor);
+    lcd.fill(lcd.bounds(),back_color);
     float scl = text_font.scale(lcd.dimensions().height - 2);
     ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
     ssize16 am_pm_size = {0,0};
@@ -290,8 +290,8 @@ void loop()
     if(refresh) {
       refresh = false;
       fb_type fb(text_bounds.dimensions(),lcd_buffer);
-      fb.fill(fb.bounds(),backcolor);
-      auto px = ghostcolor;
+      fb.fill(fb.bounds(),back_color);
+      auto px = ghost_color;
       if(am_pm) {
 #if SEG14
         oti.text = "\x7E\x7E:\x7E\x7E.";
@@ -307,7 +307,7 @@ void loop()
       }
       draw::text(fb,fb.bounds(),oti,px);
       oti.text = timbuf;
-      px = textcolor;
+      px = text_color;
       draw::text(fb,fb.bounds(),oti,px);
   #ifdef BOARD_HAS_PSRAM
       draw::bitmap(lcd,text_bounds,fb,fb.bounds());
