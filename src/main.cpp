@@ -1,3 +1,5 @@
+// uncomment the following for 14 segment display
+// #define SEG14
 #include <Arduino.h>
 #include <WiFi.h>
 #include <SPIFFS.h>
