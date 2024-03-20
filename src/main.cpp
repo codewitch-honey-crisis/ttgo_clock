@@ -194,7 +194,7 @@ void loop()
             } else {
               strftime(timbuf, sizeof(timbuf), "%I:%M", &tim);
             }
-            if(tim.tm_hour<10) {
+            if(tim.tm_hour%12<10) {
               *timbuf='!';
             }
           } else {
@@ -207,7 +207,7 @@ void loop()
             } else {
               strftime(timbuf, sizeof(timbuf), "%I %M", &tim);
             }
-            if(tim.tm_hour<10) {
+            if(tim.tm_hour%12<10) {
               *timbuf='!';
             }
           } else {
