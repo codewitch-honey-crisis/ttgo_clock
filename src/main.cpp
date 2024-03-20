@@ -219,6 +219,7 @@ void loop()
       dot = !dot;
     }
     if(refresh) {
+      refresh = false;
       fb_type fb(text_bounds.dimensions(),lcd_buffer);
       fb.fill(fb.bounds(),color_t::dark_gray);
       typename lcd_t::pixel_type px = color_t::black.blend(color_t::white,0.42f);
