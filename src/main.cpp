@@ -57,10 +57,16 @@ using namespace arduino;
 using namespace gfx;
 using color_t = color<lcd_t::pixel_type>;
 
+#ifdef SEG14
+// from https://www.keshikan.net/fonts-e.html
 #define DSEG14CLASSIC_REGULAR_IMPLEMENTATION
 #include <assets/DSEG14Classic_Regular.hpp>
 static const open_font& text_font = DSEG14Classic_Regular;
-
+#else
+#define DSEG7CLASSIC_REGULAR_IMPLEMENTATION
+#include <assets/DSEG7Classic_Regular.hpp>
+static const open_font& text_font = DSEG7Classic_Regular;
+#endif
 static const auto backcolor = color_t::dark_gray;
 static const auto ghostcolor = color_t::black.blend(color_t::white,0.42f);
 static const auto textcolor = color_t::black;
@@ -103,7 +109,11 @@ void calculate_positioning() {
     float mult = (float)(lcd.dimensions().width - 2) / (float)w;
     if (mult > 1.0f) mult = 1.0f;
     int16_t lh = (lcd.dimensions().height - 2) * mult;
+    #if SEG14
     const char* str = am_pm?"\x7E\x7E:\x7E\x7E.":"\x7E\x7E:\x7E\x7E";
+    #else
+    const char* str = am_pm?"88:88.":"88:88";
+    #endif
     oti=open_text_info(str,text_font,text_font.scale(lh));
     text_bounds = (rect16)text_font.measure_text(
       ssize16::max(),
@@ -281,9 +291,17 @@ void loop()
       fb.fill(fb.bounds(),backcolor);
       auto px = ghostcolor;
       if(am_pm) {
+#if SEG14
         oti.text = "\x7E\x7E:\x7E\x7E.";
+#else
+        oti.text = "88:88.";
+#endif
       } else {
+#if SEG14
         oti.text = "\x7E\x7E:\x7E\x7E";
+#else
+        oti.text = "88:88";
+#endif
       }
       draw::text(fb,fb.bounds(),oti,px);
       oti.text = timbuf;
