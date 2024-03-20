@@ -69,9 +69,9 @@ static const open_font& text_font = DSEG14Classic_Regular;
 #include <assets/DSEG7Classic_Regular.hpp>
 static const open_font& text_font = DSEG7Classic_Regular;
 #endif
-static const auto backcolor = color_t::dark_gray;
-static const auto ghostcolor = color_t::black.blend(color_t::white,0.42f);
-static const auto textcolor = color_t::black;
+constexpr static const auto backcolor = color_t::dark_gray;
+constexpr static const auto ghostcolor = color_t::black.blend(color_t::white,0.42f);
+constexpr static const auto textcolor = color_t::black;
 
 // static const auto backcolor = color_t::black;
 // static const auto ghostcolor = color_t::black;
