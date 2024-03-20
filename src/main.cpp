@@ -59,6 +59,7 @@ static bool refresh = false;
 static time_t current_time;
 static IPAddress ntp_ip;
 rect16 text_bounds;
+
 void calculate_positioning() {
     refresh = true;
     lcd.fill(lcd.bounds(),color_t::dark_gray);
@@ -87,13 +88,14 @@ void calculate_positioning() {
     text_bounds.x2=text_bounds.x1+lcd.dimensions().width-1;
     text_bounds=text_bounds.center(lcd.bounds());
 }
+#ifdef TTGO_T1
 void on_pressed_changed(bool pressed, void* state) {
   if(pressed) {
     am_pm = !am_pm;
     calculate_positioning();
   }
 }
-
+#endif
 void setup()
 {
     Serial.begin(115200);
@@ -229,18 +231,18 @@ void loop()
       oti.text = timbuf;
       px = color_t::black;
       draw::text(fb,fb.bounds(),oti,px);
-#ifdef BOARD_HAS_PSRAM
+  #ifdef BOARD_HAS_PSRAM
       draw::bitmap(lcd,text_bounds,fb,fb.bounds());
-#else
+  #else
       draw::wait_all_async(lcd);
       draw::bitmap_async(lcd,text_bounds,fb,fb.bounds());
-#endif
+  #endif
   }
-#ifdef TTGO_T1
+  #ifdef TTGO_T1
   dimmer.wake();
   ttgo_update();
-#endif
-#ifdef M5STACK_CORE2
+  #endif
+  #ifdef M5STACK_CORE2
   touch.update();
 
   uint16_t x,y;
@@ -249,7 +251,7 @@ void loop()
     calculate_positioning();
   }
 
-#endif
+  #endif
 }
 
 #if 0
