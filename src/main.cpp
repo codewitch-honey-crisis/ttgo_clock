@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <SPIFFS.h>
 #include <gfx.hpp>
 #include <ntp_time.hpp>
 #include <ip_loc.hpp>
@@ -51,13 +52,14 @@ static float latitude;
 static float longitude;
 static long utc_offset;
 static char region[128];
-static bool am_pm = false;
+static int am_pm = false;
 static char city[128];
 static open_text_info oti;
 static bool got_time = false;
 static bool refresh = false;
 static time_t current_time;
 static IPAddress ntp_ip;
+static File file;
 rect16 text_bounds;
 
 void calculate_positioning() {
@@ -93,6 +95,16 @@ void on_pressed_changed(bool pressed, void* state) {
   if(pressed) {
     am_pm = !am_pm;
     calculate_positioning();
+    file = SPIFFS.open("/settings","wb",true);
+    file.seek(0);
+    file.write((uint8_t*)&am_pm,sizeof(am_pm));
+    file.close();
+    Serial.print("Wrote settings: ");
+    if(am_pm) {
+      Serial.println("am/pm");
+    } else {
+      Serial.println("24-hr");
+    }
   }
 }
 #endif
@@ -130,7 +142,21 @@ void setup()
     // get_build_tm(&tim);
     tim.tm_hour = 12;
     tim.tm_min = 0;
-    tim.tm_sec = 0;    
+    tim.tm_sec = 0;
+    SPIFFS.begin(true);
+    if(SPIFFS.exists("/settings")) {
+      Serial.println("Found settings");
+      file = SPIFFS.open("/settings","rb");
+      if(sizeof(am_pm)==file.read((uint8_t*)&am_pm,sizeof(am_pm))) {
+        if(am_pm) {
+          Serial.println("Read settings switched to am/pm");
+          calculate_positioning();
+        } else {
+          Serial.println("Read settings switched to 24-hr");
+        }
+      }
+      file.close();
+    }
 }
 
 void loop()
@@ -196,7 +222,7 @@ void loop()
             } else {
               strftime(timbuf, sizeof(timbuf), "%I:%M", &tim);
             }
-            if(tim.tm_hour%12<10) {
+            if(*timbuf=='0') {
               *timbuf='!';
             }
           } else {
@@ -209,7 +235,7 @@ void loop()
             } else {
               strftime(timbuf, sizeof(timbuf), "%I %M", &tim);
             }
-            if(tim.tm_hour%12<10) {
+            if(*timbuf=='0') {
               *timbuf='!';
             }
           } else {
@@ -250,6 +276,16 @@ void loop()
   if(touch.xy(&x,&y)) {
     am_pm = !am_pm;
     calculate_positioning();
+    file = SPIFFS.open("/settings","wb",true);
+    file.seek(0);
+    file.write((uint8_t*)&am_pm,sizeof(am_pm));
+    file.close();
+    Serial.print("Wrote settings: ");
+    if(am_pm) {
+      Serial.println("am/pm");
+    } else {
+      Serial.println("24-hr");
+    }
   }
 
   #endif
