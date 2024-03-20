@@ -26,22 +26,49 @@ using touch_t = arduino::ft6336<280,320>;
 touch_t touch(Wire1);
 #endif
 
+#ifdef M5STACK_S3_ATOM
+#include <tft_io.hpp>
+#include <st7789.hpp>
+#include <button.hpp>
+#define LCD_SPI_HOST SPI3_HOST
+#define LCD_PIN_NUM_MOSI 21
+#define LCD_PIN_NUM_CLK 17
+#define LCD_PIN_NUM_CS 15
+#define LCD_PIN_NUM_DC 33
+#define LCD_PIN_NUM_RST 34
+#define LCD_PIN_NUM_BCKL 16
+using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MOSI,-1,LCD_PIN_NUM_CLK,0,false>;
+using lcd_t = arduino::st7789<128,128,LCD_PIN_NUM_DC,LCD_PIN_NUM_RST,LCD_PIN_NUM_BCKL,tft_bus_t,0>;
+lcd_t lcd;
+#define BUTTON 41
+using button_t = arduino::int_button<BUTTON,10,true>;
+button_t screen_button;
+#endif
+
 // set these to assign an SSID and pass for WiFi
 constexpr static const char* ssid = nullptr;
 constexpr static const char* pass = nullptr;
-
-#define DSEG14CLASSIC_REGULAR_IMPLEMENTATION
-#include <assets/DSEG14Classic_Regular.hpp>
-static const gfx::open_font& text_font = DSEG14Classic_Regular;
 // NTP server
 constexpr static const char* ntp_server = "pool.ntp.org";
-
 // synchronize with NTP every 60 seconds
 constexpr static const int clock_sync_seconds = 60;
 
 using namespace arduino;
 using namespace gfx;
 using color_t = color<lcd_t::pixel_type>;
+
+#define DSEG14CLASSIC_REGULAR_IMPLEMENTATION
+#include <assets/DSEG14Classic_Regular.hpp>
+static const open_font& text_font = DSEG14Classic_Regular;
+
+static const auto backcolor = color_t::dark_gray;
+static const auto ghostcolor = color_t::black.blend(color_t::white,0.42f);
+static const auto textcolor = color_t::black;
+
+// static const auto backcolor = color_t::black;
+// static const auto ghostcolor = color_t::black;
+// static const auto textcolor = color_t::red;
+
 using fb_type = bitmap<lcd_t::pixel_type>;
 static uint8_t* lcd_buffer;
 static int connect_state = 0;
@@ -64,7 +91,7 @@ rect16 text_bounds;
 
 void calculate_positioning() {
     refresh = true;
-    lcd.fill(lcd.bounds(),color_t::dark_gray);
+    lcd.fill(lcd.bounds(),backcolor);
     float scl = text_font.scale(lcd.dimensions().height - 2);
     ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
     ssize16 am_pm_size = {0,0};
@@ -90,7 +117,7 @@ void calculate_positioning() {
     text_bounds.x2=text_bounds.x1+lcd.dimensions().width-1;
     text_bounds=text_bounds.center(lcd.bounds());
 }
-#ifdef TTGO_T1
+#if defined(TTGO_T1) || defined(M5STACK_S3_ATOM)
 void on_pressed_changed(bool pressed, void* state) {
   if(pressed) {
     am_pm = !am_pm;
@@ -111,15 +138,19 @@ void on_pressed_changed(bool pressed, void* state) {
 void setup()
 {
     Serial.begin(115200);
+#ifdef TTGO_T1
+  ttgo_initialize();
+  button_a_raw.on_pressed_changed(on_pressed_changed);
+  button_b_raw.on_pressed_changed(on_pressed_changed);  
+#endif
 #ifdef M5STACK_CORE2
     power.initialize();
     touch.initialize();
     touch.rotation(1);
 #endif
-#ifdef TTGO_T1
-  ttgo_initialize();
-  button_a_raw.on_pressed_changed(on_pressed_changed);
-  button_b_raw.on_pressed_changed(on_pressed_changed);  
+#if M5STACK_S3_ATOM
+    screen_button.initialize();
+    screen_button.on_pressed_changed(on_pressed_changed);
 #endif
     lcd.initialize();
 #ifdef TTGO_T1
@@ -247,8 +278,8 @@ void loop()
     if(refresh) {
       refresh = false;
       fb_type fb(text_bounds.dimensions(),lcd_buffer);
-      fb.fill(fb.bounds(),color_t::dark_gray);
-      typename lcd_t::pixel_type px = color_t::black.blend(color_t::white,0.42f);
+      fb.fill(fb.bounds(),backcolor);
+      auto px = ghostcolor;
       if(am_pm) {
         oti.text = "\x7E\x7E:\x7E\x7E.";
       } else {
@@ -256,7 +287,7 @@ void loop()
       }
       draw::text(fb,fb.bounds(),oti,px);
       oti.text = timbuf;
-      px = color_t::black;
+      px = textcolor;
       draw::text(fb,fb.bounds(),oti,px);
   #ifdef BOARD_HAS_PSRAM
       draw::bitmap(lcd,text_bounds,fb,fb.bounds());
@@ -287,7 +318,9 @@ void loop()
       Serial.println("24-hr");
     }
   }
-
+  #endif
+  #ifdef M5STACK_S3_ATOM
+    screen_button.update();
   #endif
 }
 
