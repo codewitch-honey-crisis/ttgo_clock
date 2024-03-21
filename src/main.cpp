@@ -185,6 +185,7 @@ void setup()
     screen_button.on_pressed_changed(on_pressed_changed);
 #endif
     lcd.initialize();
+    touch.rotation(1);
 #ifdef TTGO_T1
     lcd.rotation(3);
 #endif
