@@ -327,6 +327,9 @@ void loop()
         current_time = 12*60*60;
       }
       tim = *localtime(&current_time);
+#if E_PAPER
+      dot = true;
+#endif
       if (dot) {
           if(am_pm) {
             if(tim.tm_hour>=12) {
