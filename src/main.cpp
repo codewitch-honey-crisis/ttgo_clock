@@ -189,6 +189,7 @@ void setup()
 #ifdef TTGO_T1
     lcd.rotation(3);
 #endif
+    // must do this in 24hr mode
     calculate_positioning();
     size_t sz = fb_type::sizeof_buffer(text_bounds.dimensions());
 #ifdef BOARD_HAS_PSRAM
