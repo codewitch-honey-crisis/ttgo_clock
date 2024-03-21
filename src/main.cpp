@@ -84,9 +84,21 @@ static button_c_t button_c;
 static button_d_t button_d;
 #endif
 
+#ifdef HELTEC_WIFI_KIT_V2
+#include <tft_io.hpp>
+#include <ssd1306.hpp>
+#include <button.hpp>
+using tft_bus_t = arduino::tft_i2c_ex<0,4,15>;
+using lcd_t = arduino::ssd1306<128,64,tft_bus_t,0,1,0x3C,true,400,-1,16>;
+static lcd_t lcd;
+#define BUTTON 0
+using button_t = arduino::int_button<BUTTON,10,true>;
+static button_t screen_button;
+#endif
+
 // set these to assign an SSID and pass for WiFi
-constexpr static const char* ssid = nullptr;
-constexpr static const char* pass = nullptr;
+constexpr static const char* ssid = "Communism_Will_Win";
+constexpr static const char* pass = "mypalkarl";
 // NTP server
 constexpr static const char* ntp_server = "pool.ntp.org";
 // synchronize with NTP every 60 seconds
@@ -106,14 +118,19 @@ static const open_font& text_font = DSEG14Classic_Regular;
 #include <assets/DSEG7Classic_Regular.hpp>
 static const open_font& text_font = DSEG7Classic_Regular;
 #endif
-#ifndef E_PAPER
+#if defined(E_PAPER)
 constexpr static const auto back_color = color_t::dark_gray;
 constexpr static const auto ghost_color = color_t::black.blend(color_t::white,0.42f);
+constexpr static const auto text_color = color_t::black;
+#elif defined(MONO)
+constexpr static const auto back_color = color_t::black;
+constexpr static const auto ghost_color = color_t::black;
+constexpr static const auto text_color = color_t::white;
 #else
 constexpr static const auto back_color = color_t::white;
 constexpr static const auto ghost_color = color_t::black.blend(color_t::white,0.21f);
-#endif
 constexpr static const auto text_color = color_t::black;
+#endif
 
 // static const auto back_color = color_t::black;
 // static const auto ghost_color = color_t::black;
@@ -148,6 +165,9 @@ void calculate_positioning() {
     ssize16 dig_size = text_font.measure_text(ssize16::max(), spoint16::zero(), "0", scl);
     ssize16 am_pm_size = {0,0};
     int16_t w = (dig_size.width + 1) * 6;
+#ifdef MONO
+    oti.no_antialiasing = true;
+#endif
     if(am_pm) {
       am_pm_size = text_font.measure_text(ssize16::max(), spoint16::zero(), ".", scl);
       w+=am_pm_size.width;
@@ -173,7 +193,7 @@ void calculate_positioning() {
     text_bounds.x2=text_bounds.x1+lcd.dimensions().width-1;
     text_bounds=text_bounds.center(lcd.bounds());
 }
-#if defined(TTGO_T1) || defined(M5STACK_S3_ATOM) || defined(LILYGO_T5_4_7)
+#if defined(TTGO_T1) || defined(M5STACK_S3_ATOM) || defined(LILYGO_T5_4_7) || defined(HELTEC_WIFI_KIT_V2)
 void on_pressed_changed(bool pressed, void* state) {
   if(pressed) {
     am_pm = !am_pm;
@@ -204,7 +224,7 @@ void setup()
     touch.initialize();
     touch.rotation(1);
 #endif
-#if M5STACK_S3_ATOM
+#if defined(M5STACK_S3_ATOM) || defined(HELTEC_WIFI_KIT_V2)
     screen_button.initialize();
     screen_button.on_pressed_changed(on_pressed_changed);
 #endif
@@ -218,6 +238,7 @@ void setup()
   button_c.on_pressed_changed(on_pressed_changed);
   button_d.on_pressed_changed(on_pressed_changed); 
 #endif
+
     lcd.initialize();
 #ifdef TTGO_T1
     lcd.rotation(3);
@@ -410,7 +431,7 @@ void loop()
     }
   }
   #endif
-  #ifdef M5STACK_S3_ATOM
+  #if defined(M5STACK_S3_ATOM) || defined(HELTEC_WIFI_KIT_V2)
     screen_button.update();
   #endif
   #ifdef LILYGO_T5_4_7
