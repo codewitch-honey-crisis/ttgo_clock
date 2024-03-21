@@ -209,6 +209,10 @@ void setup()
     screen_button.on_pressed_changed(on_pressed_changed);
 #endif
 #ifdef LILYGO_T5_4_7
+  button_a.initialize();
+  button_b.initialize();
+  button_c.initialize();
+  button_d.initialize();
   button_a.on_pressed_changed(on_pressed_changed);
   button_b.on_pressed_changed(on_pressed_changed);  
   button_c.on_pressed_changed(on_pressed_changed);
