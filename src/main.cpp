@@ -85,8 +85,8 @@ static button_d_t button_d;
 #endif
 
 // set these to assign an SSID and pass for WiFi
-constexpr static const char* ssid = "Communism_Will_Win";
-constexpr static const char* pass = "mypalkarl";
+constexpr static const char* ssid = nullptr;
+constexpr static const char* pass = nullptr;
 // NTP server
 constexpr static const char* ntp_server = "pool.ntp.org";
 // synchronize with NTP every 60 seconds
@@ -307,15 +307,12 @@ void loop()
   // once every second...
   if (!ts_sec || millis() > ts_sec + 1000) {
 #ifdef E_PAPER
-      static int secs = 0;
-      dot = false;
-      ++secs;
-      if(secs>=60) {
-        secs = 0;
-        refresh = true;
+      static bool first = true;
+      if(0==current_time%60 || first) {
+        refresh=true;
+        first = false;
       }
- 
-    
+      
 #else
       refresh = true;
 #endif
