@@ -13,7 +13,7 @@
 #else
     #include <pgmspace.h>
 #endif
-#include <gfx.hpp>
+#include <gfx_open_font.hpp>
 
 extern const uint8_t DSEG7Classic_Regular_data[] PROGMEM;
 extern gfx::const_buffer_stream DSEG7Classic_Regular_stream;

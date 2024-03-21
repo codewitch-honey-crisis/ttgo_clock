@@ -27,6 +27,24 @@ static m5core2_power power;
 using touch_t = arduino::ft6336<280,320>;
 touch_t touch(Wire1);
 #endif
+#ifdef M5STACK_TOUGH
+#include <tft_io.hpp>
+#include <ili9341.hpp>
+#include <chsc6540.hpp>
+#include <m5tough_power.hpp>
+#define LCD_SPI_HOST VSPI
+#define LCD_PIN_NUM_MOSI 23
+#define LCD_PIN_NUM_MISO 38
+#define LCD_PIN_NUM_CLK 18
+#define LCD_PIN_NUM_CS 5
+#define LCD_PIN_NUM_DC 15
+using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MOSI,LCD_PIN_NUM_MISO,LCD_PIN_NUM_CLK,0,false>;
+using lcd_t = arduino::ili9342c<LCD_PIN_NUM_DC,-1,-1,tft_bus_t,1>;
+lcd_t lcd;
+static m5tough_power power;
+using touch_t = arduino::chsc6540<280,320,39>;
+touch_t touch(Wire1);
+#endif
 
 #ifdef M5STACK_S3_ATOM
 #include <tft_io.hpp>
@@ -94,7 +112,9 @@ static bool got_time = false;
 static bool refresh = false;
 static time_t current_time;
 static IPAddress ntp_ip;
+#ifdef ESP32
 static File file;
+#endif
 rect16 text_bounds;
 
 void calculate_positioning() {
@@ -155,7 +175,7 @@ void setup()
   button_a_raw.on_pressed_changed(on_pressed_changed);
   button_b_raw.on_pressed_changed(on_pressed_changed);  
 #endif
-#ifdef M5STACK_CORE2
+#if defined(M5STACK_CORE2) || defined(M5STACK_TOUGH)
     power.initialize();
     touch.initialize();
     touch.rotation(1);
@@ -320,9 +340,8 @@ void loop()
   dimmer.wake();
   ttgo_update();
   #endif
-  #ifdef M5STACK_CORE2
+  #if defined(M5STACK_CORE2) || defined(M5STACK_TOUGH)
   touch.update();
-
   uint16_t x,y;
   if(touch.xy(&x,&y)) {
     am_pm = !am_pm;
