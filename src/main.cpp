@@ -22,10 +22,10 @@
 #define LCD_PIN_NUM_DC 15
 using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MOSI,-1,LCD_PIN_NUM_CLK,0,false>;
 using lcd_t = arduino::ili9342c<LCD_PIN_NUM_DC,-1,-1,tft_bus_t,1>;
-lcd_t lcd;
+static lcd_t lcd;
 static m5core2_power power;
 using touch_t = arduino::ft6336<280,320>;
-touch_t touch(Wire1);
+static touch_t touch(Wire1);
 #endif
 #ifdef M5STACK_TOUGH
 #include <tft_io.hpp>
@@ -40,10 +40,10 @@ touch_t touch(Wire1);
 #define LCD_PIN_NUM_DC 15
 using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MOSI,LCD_PIN_NUM_MISO,LCD_PIN_NUM_CLK,0,false>;
 using lcd_t = arduino::ili9342c<LCD_PIN_NUM_DC,-1,-1,tft_bus_t,1>;
-lcd_t lcd;
+static lcd_t lcd;
 static m5tough_power power;
 using touch_t = arduino::chsc6540<280,320,39>;
-touch_t touch(Wire1);
+static touch_t touch(Wire1);
 #endif
 
 #ifdef M5STACK_S3_ATOM
@@ -59,15 +59,34 @@ touch_t touch(Wire1);
 #define LCD_PIN_NUM_BCKL 16
 using tft_bus_t = arduino::tft_spi_ex<LCD_SPI_HOST,LCD_PIN_NUM_CS,LCD_PIN_NUM_MOSI,-1,LCD_PIN_NUM_CLK,0,false>;
 using lcd_t = arduino::st7789<128,128,LCD_PIN_NUM_DC,LCD_PIN_NUM_RST,LCD_PIN_NUM_BCKL,tft_bus_t,0>;
-lcd_t lcd;
+static lcd_t lcd;
 #define BUTTON 41
 using button_t = arduino::int_button<BUTTON,10,true>;
-button_t screen_button;
+static button_t screen_button;
+#endif
+
+#ifdef LILYGO_T5_4_7
+#include <lilygot54in7.hpp>
+#include <button.hpp>
+using lcd_t = arduino::lilygot54in7;
+arduino::lilygot54in7 lcd;
+#define BUTTON_A 39
+#define BUTTON_B 34
+#define BUTTON_C 35
+#define BUTTON_D 0
+using button_a_t = arduino::int_button<BUTTON_A,10,true>;
+using button_b_t = arduino::int_button<BUTTON_B,10,true>;
+using button_c_t = arduino::int_button<BUTTON_C,10,true>;
+using button_d_t = arduino::int_button<BUTTON_D,10,true>;
+static button_a_t button_a;
+static button_b_t button_b;
+static button_c_t button_c;
+static button_d_t button_d;
 #endif
 
 // set these to assign an SSID and pass for WiFi
-constexpr static const char* ssid = nullptr;
-constexpr static const char* pass = nullptr;
+constexpr static const char* ssid = "Communism_Will_Win";
+constexpr static const char* pass = "mypalkarl";
 // NTP server
 constexpr static const char* ntp_server = "pool.ntp.org";
 // synchronize with NTP every 60 seconds
@@ -75,7 +94,7 @@ constexpr static const int clock_sync_seconds = 60;
 
 using namespace arduino;
 using namespace gfx;
-using color_t = color<lcd_t::pixel_type>;
+using color_t = color<typename lcd_t::pixel_type>;
 
 #ifdef SEG14
 // from https://www.keshikan.net/fonts-e.html
@@ -87,8 +106,13 @@ static const open_font& text_font = DSEG14Classic_Regular;
 #include <assets/DSEG7Classic_Regular.hpp>
 static const open_font& text_font = DSEG7Classic_Regular;
 #endif
+#ifndef E_PAPER
 constexpr static const auto back_color = color_t::dark_gray;
 constexpr static const auto ghost_color = color_t::black.blend(color_t::white,0.42f);
+#else
+constexpr static const auto back_color = color_t::white;
+constexpr static const auto ghost_color = color_t::black.blend(color_t::white,0.21f);
+#endif
 constexpr static const auto text_color = color_t::black;
 
 // static const auto back_color = color_t::black;
@@ -149,7 +173,7 @@ void calculate_positioning() {
     text_bounds.x2=text_bounds.x1+lcd.dimensions().width-1;
     text_bounds=text_bounds.center(lcd.bounds());
 }
-#if defined(TTGO_T1) || defined(M5STACK_S3_ATOM)
+#if defined(TTGO_T1) || defined(M5STACK_S3_ATOM) || defined(LILYGO_T5_4_7)
 void on_pressed_changed(bool pressed, void* state) {
   if(pressed) {
     am_pm = !am_pm;
@@ -184,10 +208,18 @@ void setup()
     screen_button.initialize();
     screen_button.on_pressed_changed(on_pressed_changed);
 #endif
+#ifdef LILYGO_T5_4_7
+  button_a.on_pressed_changed(on_pressed_changed);
+  button_b.on_pressed_changed(on_pressed_changed);  
+  button_c.on_pressed_changed(on_pressed_changed);
+  button_d.on_pressed_changed(on_pressed_changed); 
+#endif
     lcd.initialize();
-    touch.rotation(1);
 #ifdef TTGO_T1
     lcd.rotation(3);
+#endif
+#ifdef LILYGO_T5_4_7
+  lcd.rotation(1); 
 #endif
     // must do this in 24hr mode
     calculate_positioning();
@@ -201,7 +233,7 @@ void setup()
       Serial.println("Out of memory allocating LCD buffer");
       while(1);
     }
-    lcd.fill(lcd.bounds(),color_t::dark_gray);
+    lcd.fill(lcd.bounds(),back_color);
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     // get_build_tm(&tim);
@@ -258,6 +290,7 @@ void loop()
         if(!ntp_ts || millis() > ntp_ts + (clock_sync_seconds*got_time*1000)+((!got_time)*250)) {
           ntp_ts = millis();
           Serial.println("Sending NTP request");
+          got_time = false;
           ntp.begin_request(ntp_ip,[] (time_t result, void* state) {
             Serial.println("NTP response received");
             current_time = utc_offset + result;
@@ -269,10 +302,23 @@ void loop()
       break;
   }
   static uint32_t ts_sec = 0;
-  static bool dot = false;
+  static bool dot = true;
+  
   // once every second...
   if (!ts_sec || millis() > ts_sec + 1000) {
+#ifdef E_PAPER
+      static int secs = 0;
+      dot = false;
+      ++secs;
+      if(secs>=60) {
+        secs = 0;
+        refresh = true;
+      }
+ 
+    
+#else
       refresh = true;
+#endif
       ts_sec = millis();
       if(connect_state==2) { // is connected?
         ++current_time;
@@ -362,6 +408,12 @@ void loop()
   #endif
   #ifdef M5STACK_S3_ATOM
     screen_button.update();
+  #endif
+  #ifdef LILYGO_T5_4_7
+    button_a.update();
+    button_b.update();
+    button_c.update();
+    button_d.update();
   #endif
 }
 
