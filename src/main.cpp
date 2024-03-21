@@ -10,6 +10,7 @@
 #ifdef TTGO_T1
 #include <ttgo.hpp>
 #endif
+
 #ifdef M5STACK_CORE2
 #include <tft_io.hpp>
 #include <ili9341.hpp>
@@ -27,6 +28,7 @@ static m5core2_power power;
 using touch_t = arduino::ft6336<280,320>;
 static touch_t touch(Wire1);
 #endif
+
 #ifdef M5STACK_TOUGH
 #include <tft_io.hpp>
 #include <ili9341.hpp>
@@ -97,8 +99,8 @@ static button_t screen_button;
 #endif
 
 // set these to assign an SSID and pass for WiFi
-constexpr static const char* ssid = "Communism_Will_Win";
-constexpr static const char* pass = "mypalkarl";
+constexpr static const char* ssid = nullptr;
+constexpr static const char* pass = nullptr;
 // NTP server
 constexpr static const char* ntp_server = "pool.ntp.org";
 // synchronize with NTP every 60 seconds
