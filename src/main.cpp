@@ -329,10 +329,10 @@ void loop()
       break;
   }
   static uint32_t ts_sec = 0;
-  static bool dot = true;
-  
+  static bool odd_sec = false;
   // once every second...
   if (!ts_sec || millis() > ts_sec + 1000) {
+    odd_sec = !odd_sec;
 #ifdef E_PAPER
       static bool first = true;
       if(0==current_time%60 || first) {
@@ -349,10 +349,11 @@ void loop()
       } else {
         current_time = 12*60*60;
       }
-#if E_PAPER
+      tm tim = *localtime(&current_time);
+      bool dot = 0==(current_time&1);
+#ifdef E_PAPER
       dot = true;
 #endif
-      tm tim = *localtime(&current_time);
       if (dot) {
           if(am_pm) {
             if(tim.tm_hour>=12) {
@@ -380,7 +381,6 @@ void loop()
             strftime(timbuf, sizeof(timbuf), "%H %M", &tim);
           }
       }
-      dot = !dot;
     }
     if(refresh) {
       refresh = false;
@@ -401,9 +401,11 @@ void loop()
 #endif
       }
       draw::text(fb,fb.bounds(),oti,px);
-      oti.text = timbuf;
-      px = text_color;
-      draw::text(fb,fb.bounds(),oti,px);
+      if(current_time>12*60*60 || !odd_sec) {
+        oti.text = timbuf;
+        px = text_color;
+        draw::text(fb,fb.bounds(),oti,px);
+      }
   #ifdef BOARD_HAS_PSRAM
       draw::bitmap(lcd,text_bounds,fb,fb.bounds());
   #else
