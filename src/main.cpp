@@ -120,7 +120,7 @@ static const open_font& text_font = DSEG14Classic_Regular;
 #include <assets/DSEG7Classic_Regular.hpp>
 static const open_font& text_font = DSEG7Classic_Regular;
 #endif
-#if defined(E_PAPER)
+#if !defined(E_PAPER)
 constexpr static const auto back_color = color_t::dark_gray;
 constexpr static const auto ghost_color = color_t::black.blend(color_t::white,0.42f);
 constexpr static const auto text_color = color_t::black;
@@ -143,12 +143,9 @@ static uint8_t* lcd_buffer;
 static int connect_state = 0;
 static char timbuf[16];
 static ntp_time ntp;
-static float latitude;
-static float longitude;
 static long utc_offset;
-static char region[128];
-static int am_pm = false;
 static char city[128];
+static int am_pm = false;
 static open_text_info oti;
 static bool got_time = false;
 static bool refresh = false;
@@ -300,7 +297,7 @@ void loop()
         WiFi.hostByName(ntp_server, ntp_ip);
         Serial.print("NTP IP: ");
         Serial.println(ntp_ip.toString());
-        ip_loc::fetch(&latitude, &longitude, &utc_offset, region, 128, city, 128);
+        ip_loc::fetch(nullptr, nullptr, &utc_offset, nullptr, 0, city, 0);
         Serial.print("City: ");
         Serial.println(city);
       }
