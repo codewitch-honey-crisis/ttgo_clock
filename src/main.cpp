@@ -142,7 +142,6 @@ using fb_type = bitmap<lcd_t::pixel_type>;
 static uint8_t* lcd_buffer;
 static int connect_state = 0;
 static char timbuf[16];
-static tm tim;
 static ntp_time ntp;
 static float latitude;
 static float longitude;
@@ -263,10 +262,6 @@ void setup()
     lcd.fill(lcd.bounds(),back_color);
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
-    // get_build_tm(&tim);
-    tim.tm_hour = 12;
-    tim.tm_min = 0;
-    tim.tm_sec = 0;
     SPIFFS.begin(true);
     if(SPIFFS.exists("/settings")) {
       Serial.println("Found settings");
@@ -314,7 +309,11 @@ void loop()
       if (WiFi.status() != WL_CONNECTED) {
         connect_state = 0;
       } else {
-        if(!ntp_ts || millis() > ntp_ts + (clock_sync_seconds*got_time*1000)+((!got_time)*250)) {
+        bool should_fetch = !ntp_ts || millis() > ntp_ts + (clock_sync_seconds*1000);
+        if(!got_time) {
+          should_fetch = !ntp_ts || millis()> ntp_ts+250;
+        }
+        if(should_fetch) {
           ntp_ts = millis();
           Serial.println("Sending NTP request");
           got_time = false;
@@ -322,6 +321,7 @@ void loop()
             Serial.println("NTP response received");
             current_time = utc_offset + result;
             got_time = true;
+            refresh = true;
           });
         }
         ntp.update();
@@ -349,10 +349,10 @@ void loop()
       } else {
         current_time = 12*60*60;
       }
-      tim = *localtime(&current_time);
 #if E_PAPER
       dot = true;
 #endif
+      tm tim = *localtime(&current_time);
       if (dot) {
           if(am_pm) {
             if(tim.tm_hour>=12) {
