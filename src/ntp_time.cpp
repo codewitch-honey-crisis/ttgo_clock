@@ -6,8 +6,10 @@
 
 #include <ntp_time.hpp>
 namespace arduino {
-WiFiUDP g_ntp_time_udp;
+static WiFiUDP g_ntp_time_udp;
 void ntp_time::begin_request(IPAddress address, 
+                            size_t retry_count,
+                            uint32_t retry_ms,
                             ntp_time_callback callback, 
                             void* callback_state) {
     memset(m_packet_buffer, 0, 48);
@@ -27,15 +29,27 @@ void ntp_time::begin_request(IPAddress address,
     g_ntp_time_udp.endPacket();
     m_request_result = 0;
     m_requesting = true;
-
+    m_retries = 0;
+    m_retry_ts = 0;
+    m_retry_count = retry_count;
+    m_retry_timeout = retry_ms;
     m_callback_state = callback_state;
     m_callback = callback;
 }
 
-void ntp_time::update() {
+bool ntp_time::update() {
     m_request_result = 0;
         
-    if(m_requesting) {
+    if(m_requesting && millis()>m_retry_ts+m_retry_timeout) {
+        m_retry_ts = millis();
+        ++m_retries;
+        if(m_retry_count>0 && m_retries>m_retry_count) {
+            m_requesting = false;
+            if(m_callback!=nullptr) {
+                m_callback(m_callback_state);
+            }
+            return false;
+        }
         // read the packet into the buffer
         // if we got a packet from NTP, read it
         if (0 < g_ntp_time_udp.parsePacket()) {
@@ -55,10 +69,12 @@ void ntp_time::update() {
             m_request_result = since1900 - seventyYears;
             m_requesting = false;
             if(m_callback!=nullptr) {
-                m_callback(m_request_result,m_callback_state);
+                m_callback(m_callback_state);
             }
+            return false;
         }
     }
+    return true;
 }
 }
 #endif

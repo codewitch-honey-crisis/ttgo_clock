@@ -274,7 +274,17 @@ void setup()
       file.close();
     }
 }
-
+void ntp_on_recv(void* state) {
+  if(ntp.request_received()) {
+    Serial.println("NTP response received");
+    current_time = utc_offset + ntp.request_result();
+    got_time = true;
+    refresh = true;
+  } else {
+    Serial.println("NTP error");
+    ntp.begin_request(ntp_ip,3,3000,ntp_on_recv);
+  }
+}
 void loop()
 {
   static uint32_t ntp_ts = 0;
@@ -312,14 +322,8 @@ void loop()
         }
         if(should_fetch) {
           ntp_ts = millis();
-          Serial.println("Sending NTP request");
           got_time = false;
-          ntp.begin_request(ntp_ip,[] (time_t result, void* state) {
-            Serial.println("NTP response received");
-            current_time = utc_offset + result;
-            got_time = true;
-            refresh = true;
-          });
+          ntp.begin_request(ntp_ip,3,3000,ntp_on_recv);
         }
         ntp.update();
       }
@@ -441,6 +445,7 @@ void loop()
     button_c.update();
     button_d.update();
   #endif
+  ntp.update();
 }
 
 #if 0
