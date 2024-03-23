@@ -350,6 +350,8 @@ void loop()
       } else {
         current_time = 12*60*60;
       }
+    if(refresh) {
+      refresh = false;
       tm tim = *localtime(&current_time);
       bool dot = 0==(current_time&1);
 #ifdef E_PAPER
@@ -383,8 +385,7 @@ void loop()
           }
       }
     }
-    if(refresh) {
-      refresh = false;
+
       fb_type fb(text_bounds.dimensions(),lcd_buffer);
       fb.fill(fb.bounds(),back_color);
       auto px = ghost_color;
