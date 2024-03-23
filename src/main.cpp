@@ -191,6 +191,70 @@ void calculate_positioning() {
     text_bounds.x2=text_bounds.x1+lcd.dimensions().width-1;
     text_bounds=text_bounds.center(lcd.bounds());
 }
+void display_time(time_t time, bool am_pm, bool odd_sec) {
+      tm tim = *localtime(&time);
+      bool dot = 0==(current_time&1);
+#ifdef E_PAPER
+      dot = true;
+#endif
+      if (dot) {
+          if(am_pm) {
+            if(tim.tm_hour>=12) {
+              strftime(timbuf, sizeof(timbuf), "%I:%M.", &tim);
+            } else {
+              strftime(timbuf, sizeof(timbuf), "%I:%M", &tim);
+            }
+            if(*timbuf=='0') {
+              *timbuf='!';
+            }
+          } else {
+            strftime(timbuf, sizeof(timbuf), "%H:%M", &tim);
+          }
+      } else {
+          if(am_pm) {
+            if(tim.tm_hour>=12) {
+              strftime(timbuf, sizeof(timbuf), "%I %M.", &tim);
+            } else {
+              strftime(timbuf, sizeof(timbuf), "%I %M", &tim);
+            }
+            if(*timbuf=='0') {
+              *timbuf='!';
+            }
+          } else {
+            strftime(timbuf, sizeof(timbuf), "%H %M", &tim);
+          }
+      }
+    
+
+      fb_type fb(text_bounds.dimensions(),lcd_buffer);
+      fb.fill(fb.bounds(),back_color);
+      auto px = ghost_color;
+      if(am_pm) {
+#if SEG14
+        oti.text = "\x7E\x7E:\x7E\x7E.";
+#else
+        oti.text = "88:88.";
+#endif
+      } else {
+#if SEG14
+        oti.text = "\x7E\x7E:\x7E\x7E";
+#else
+        oti.text = "88:88";
+#endif
+      }
+      draw::text(fb,fb.bounds(),oti,px);
+      if(current_time>12*60*60 || odd_sec) {
+        oti.text = timbuf;
+        px = text_color;
+        draw::text(fb,fb.bounds(),oti,px);
+      }
+  #ifdef BOARD_HAS_PSRAM
+      draw::bitmap(lcd,text_bounds,fb,fb.bounds());
+  #else
+      draw::wait_all_async(lcd);
+      draw::bitmap_async(lcd,text_bounds,fb,fb.bounds());
+  #endif
+}
 #if defined(TTGO_T1) || defined(M5STACK_S3_ATOM) || defined(LILYGO_T5_4_7) || defined(HELTEC_WIFI_KIT_V2)
 void on_pressed_changed(bool pressed, void* state) {
   if(pressed) {
@@ -332,7 +396,8 @@ void loop()
   static uint32_t ts_sec = 0;
   static bool odd_sec = false;
   // once every second...
-  if (!ts_sec || millis() > ts_sec + 1000) {
+  if (millis() > ts_sec + 1000) {
+    ts_sec = millis();
     odd_sec = !odd_sec;
 #ifdef E_PAPER
       static bool first = true;
@@ -344,7 +409,6 @@ void loop()
 #else
       refresh = true;
 #endif
-      ts_sec = millis();
       if(connect_state==2) { // is connected?
         ++current_time;
       } else {
@@ -352,68 +416,8 @@ void loop()
       }
     if(refresh) {
       refresh = false;
-      tm tim = *localtime(&current_time);
-      bool dot = 0==(current_time&1);
-#ifdef E_PAPER
-      dot = true;
-#endif
-      if (dot) {
-          if(am_pm) {
-            if(tim.tm_hour>=12) {
-              strftime(timbuf, sizeof(timbuf), "%I:%M.", &tim);
-            } else {
-              strftime(timbuf, sizeof(timbuf), "%I:%M", &tim);
-            }
-            if(*timbuf=='0') {
-              *timbuf='!';
-            }
-          } else {
-            strftime(timbuf, sizeof(timbuf), "%H:%M", &tim);
-          }
-      } else {
-          if(am_pm) {
-            if(tim.tm_hour>=12) {
-              strftime(timbuf, sizeof(timbuf), "%I %M.", &tim);
-            } else {
-              strftime(timbuf, sizeof(timbuf), "%I %M", &tim);
-            }
-            if(*timbuf=='0') {
-              *timbuf='!';
-            }
-          } else {
-            strftime(timbuf, sizeof(timbuf), "%H %M", &tim);
-          }
-      }
+      display_time(current_time,am_pm,odd_sec);
     }
-
-      fb_type fb(text_bounds.dimensions(),lcd_buffer);
-      fb.fill(fb.bounds(),back_color);
-      auto px = ghost_color;
-      if(am_pm) {
-#if SEG14
-        oti.text = "\x7E\x7E:\x7E\x7E.";
-#else
-        oti.text = "88:88.";
-#endif
-      } else {
-#if SEG14
-        oti.text = "\x7E\x7E:\x7E\x7E";
-#else
-        oti.text = "88:88";
-#endif
-      }
-      draw::text(fb,fb.bounds(),oti,px);
-      if(current_time>12*60*60 || !odd_sec) {
-        oti.text = timbuf;
-        px = text_color;
-        draw::text(fb,fb.bounds(),oti,px);
-      }
-  #ifdef BOARD_HAS_PSRAM
-      draw::bitmap(lcd,text_bounds,fb,fb.bounds());
-  #else
-      draw::wait_all_async(lcd);
-      draw::bitmap_async(lcd,text_bounds,fb,fb.bounds());
-  #endif
   }
   #ifdef TTGO_T1
   dimmer.wake();

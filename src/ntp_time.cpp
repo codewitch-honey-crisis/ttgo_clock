@@ -48,6 +48,9 @@ bool ntp_time::update() {
             if(m_callback!=nullptr) {
                 m_callback(m_callback_state);
             }
+            m_retries = 0;
+            m_retry_ts = 0;
+            m_requesting = false;
             return false;
         }
         // read the packet into the buffer
@@ -68,6 +71,8 @@ bool ntp_time::update() {
             // subtract seventy years:
             m_request_result = since1900 - seventyYears;
             m_requesting = false;
+            m_retries = 0;
+            m_retry_ts = 0;
             if(m_callback!=nullptr) {
                 m_callback(m_callback_state);
             }
